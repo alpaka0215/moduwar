@@ -618,8 +618,8 @@ function spiritsOf(t){
     L.push({n:'평화 헌장',d:`현실 5분 경과 또는 긴장도 80% 전까지 선전포고·전시동원 불가, 군수 생산 -50%${usaIso()?` · 남은 시간 ${Math.floor(rs/60)}:${String(rs%60).padStart(2,'0')} / 긴장도 ${S.tension.toFixed(0)}%`:''}`,on:usaIso()});
     if(S.flags.split) L.push({n:'국뽕 결집',d:'내전 중 공격력·방어력 +15%, 군수 생산 +10% — 정규군과 공업지대 대부분이 국뽕뜰 편에 섰다',on:civilOn()});
     if(S.flags.reunited) L.push({n:'재통일',d:'내전 승리 후 인력 회복 +30%',on:1});
-    if(S.flags.reunited) L.push({n:'내전 후유증',d:'숙청과 지휘부 공백: 공격력 -20%, 방어력 -15% (모두력 5년 12월 5일까지)',on:curDate()<new Date(2035,11,5)});
-    if(S.flags.jyu){ L.push({n:'기습 충격',d:'자유뜰 공방전 개시 후 120일간 방어력 -20%',on:blitzOn()});
+    if(S.flags.reunited) L.push({n:'내전 후유증',d:'숙청과 지휘부 공백: 공격력 -10%, 방어력 -5% (모두력 5년 12월 5일까지)',on:curDate()<new Date(2035,11,5)});
+    if(S.flags.jyu){ L.push({n:'기습 충격',d:'자유뜰 공방전 개시 후 90일간 방어력 -15%',on:blitzOn()&&S.day<jyuDay()+90});
       L.push({n:'자유뜰 사수',d:'자유뜰과 맞닿은 프로빈스 방어력 +50%',on:1});
       L.push({n:'모두력 혹한',d:'11~3월 모두함께 본토로 진격하는 적 공격력 -20%, 이동속도 -30%',on:isWinter()}); }
   }
@@ -630,7 +630,7 @@ function spiritsOf(t){
   if(t==='MSS'){ L.push({n:'신라 통일 전쟁',d:'신성신라제국과 상시 교전 상태로 시작, 신성신라 본토 공격력 -15% (정통성의 수렁)',on:1});
     L.push({n:'무적 수군',d:'본토 상륙 저지 방어 +150%',on:1});
     L.push({n:'제국 총동원',d:'군수 생산 +30%, 인력 회복 +20%',on:1});
-    L.push({n:'전격 진격',d:'자유뜰 공방전 개시 후 120일간 모두함께 상대 공격력 +30%',on:blitzOn()||!S.flags.jyu});}
+    L.push({n:'전격 진격',d:'자유뜰 공방전 개시 후 120일간 모두함께 상대 공격력 +20%',on:blitzOn()||!S.flags.jyu});}
   if(t==='LBT') L.push({n:'자유의 횃불',d:'겨울·삼림·산악 방어 +50%, 스크래치 연합 상대 공방 +25%',on:1});
   if(t==='SSS'){L.push({n:'정통 계승자',d:'인력 회복 속도 2배',on:1});L.push({n:'성골의 땅',d:'본토 방어력 +45%, 장비 유지비 절반',on:1});}
   if(t==='ITD') L.push({n:'이음의 섬',d:'섬 요새화: 방어력 +50%',on:1});
@@ -697,11 +697,12 @@ function histBias(att,def,p){
   if(AX.includes(att)&&def==='ITD'&&d<D(2035,6)) m*=0.6;
   return m;
 }
-function postureBias(att,def){   // AI가 플레이어 국가를 공격할 때의 시나리오 태세 (가짜 전쟁 등)
+function postureBias(att,def,p){   // AI가 플레이어 국가를 공격할 때의 시나리오 태세 (가짜 전쟁 등)
   const d=curDate(), D=(y,m,dd)=>new Date(y,m-1,dd||1);
   if(['ANC','C82'].includes(att)&&def==='MSS') return d<D(2032,5,10)?0.3:0.75;
   if(att==='SSS'&&def==='MSS') return 0.7;
   if(att==='MDH'&&def==='IBD') return d<D(2032,12)?0.6:0.9;
+  if(['MSS','MCD','IBD'].includes(att)&&def==='MDH'){ let m=att==='MCD'?0.75:1; if(isWinter()) m*=0.75; if(p!=null&&p===NI['자유뜰']) m*=0.6; return m; }
   return 1;
 }
 function attackPow(inf,tnk,t,p,sea,def,F){
@@ -717,12 +718,12 @@ function attackPow(inf,tnk,t,p,sea,def,F){
   if(t==='MSS'&&PV[p].core==='SSS'&&S.P[p].owner==='SSS') add('정통성의 수렁',0.85);
   if(t==='LBT'&&def==='SVU') add('자유의 횃불',1.25);
   if(t==='MDH'&&civilOn()) add('국뽕 결집',1.15);
-  if(t==='MDH'&&S.flags.reunited&&curDate()<new Date(2035,11,5)) add('내전 후유증',0.8);
+  if(t==='MDH'&&S.flags.reunited&&curDate()<new Date(2035,11,5)) add('내전 후유증',0.9);
   if(t==='IBD') add('일뽕 분열',0.85);
-  if(t==='MSS'&&def==='MDH'&&blitzOn()) add('전격 진격',1.3);
+  if(t==='MSS'&&def==='MDH'&&blitzOn()) add('전격 진격',1.2);
   if(isWinter()&&S.flags.jyu&&PV[p].core==='MDH'&&t!=='MDH'&&t!=='IBD') add('모두력 혹한',0.8);
   add('시나리오 보정',histBias(t,def,p));
-  if(def&&def===S.player&&t!==S.player) add('AI 태세 (가짜 전쟁 등)',postureBias(t,def));
+  if(def&&def===S.player&&t!==S.player) add('AI 태세 (가짜 전쟁 등)',postureBias(t,def,p));
   m*=modMult(t,'atk',F);
   return pw*m;
 }
@@ -741,9 +742,9 @@ function defendPow(p,att,sea,F){
   if(o==='MSS'&&d.core==='MSS'&&sea) add('무적 수군',2.5);
   if(o==='CBC'&&p===NI['제단']) add('광신 수호',1.5);
   if(o==='MDH'&&civilOn()) add('국뽕 결집',1.15);
-  if(o==='MDH'&&S.flags.reunited&&curDate()<new Date(2035,11,5)) add('내전 후유증',0.85);
+  if(o==='MDH'&&S.flags.reunited&&curDate()<new Date(2035,11,5)) add('내전 후유증',0.95);
   if(o==='IBD'){ add('일뽕 분열',0.85); if(d.terr==='m') add('남부 산악 거점',1.2); }
-  if(o==='MDH'&&blitzOn()) add('기습 충격',0.8);
+  if(o==='MDH'&&blitzOn()&&S.day<jyuDay()+90) add('기습 충격',0.85);
   if(o==='MDH'&&S.flags.jyu&&(p===NI['자유뜰']||[...adj[p]].some(([q,ty])=>q===NI['자유뜰']&&ty==='land'))) add('자유뜰 사수',1.5);
   if(o==='ITD') add('이음의 섬',1.5);
   add('조직력 (운영진 교체)',orgM(o)); add('장비 부족',eqM(o)); add('보급 상태',supply(o,p)); add('공군 우세/열세',airM(o,att));
@@ -942,8 +943,17 @@ function civilWar(){
   if(S.flags.split||!S.C.MDH.alive) return; S.flags.split=1; S.flags.isoEnd=1;
   setSplitView(true);
   const L=ibdProvs(), M=S.C.MDH;
-  let di=0, dt=0; S.P.forEach((P,i)=>{ if(P.owner==='MDH'&&!L.includes(i)){ di+=P.inf*0.4; dt+=P.tnk*0.3; P.inf*=0.6; P.tnk*=0.7; } });
-  L.forEach(i=>{ const P=S.P[i]; if(P.owner!=='MDH') return; P.owner='IBD'; P.inf=P.inf+di/L.length; P.tnk=P.tnk+dt/L.length; P.mic*=0.85; markDirty(i); });
+  // 병력 분할: 국뽕뜰 65% · 일뽕뜰 35% (기갑은 75% · 25%) — 국경 배치와 무관하게 고정
+  const mine=S.P.map((P,i)=>i).filter(i=>S.P[i].owner==='MDH'&&!PV[i].col), inL=i=>L.includes(i);
+  const sum=(f,k)=>mine.filter(f).reduce((a,i)=>a+S.P[i][k],0);
+  [['inf',0.35],['tnk',0.25]].forEach(([k,r])=>{
+    const T=sum(()=>true,k), sL=sum(inL,k), want=T*r;
+    if(sL>want){ const f=want/sL; let ex=0; mine.filter(inL).forEach(i=>{ ex+=S.P[i][k]*(1-f); S.P[i][k]*=f; });
+      const loyal=mine.filter(i=>!inL(i)); const sO=sum(i=>!inL(i),k)||1; loyal.forEach(i=>S.P[i][k]+=ex*(S.P[i][k]/sO||1/loyal.length)); }
+    else { const need=want-sL, sO=sum(i=>!inL(i),k)||1, g=Math.min(0.5,need/sO); let mv=0; mine.filter(i=>!inL(i)).forEach(i=>{ mv+=S.P[i][k]*g; S.P[i][k]*=1-g; });
+      mine.filter(inL).forEach(i=>S.P[i][k]+=mv/Math.max(1,L.length)); }
+  });
+  L.forEach(i=>{ const P=S.P[i]; if(P.owner!=='MDH') return; P.owner='IBD'; P.mic*=0.85; markDirty(i); });
   S.battles=S.battles.filter(b=>!(b.o==='MDH'&&S.P[b.f]&&S.P[b.f].owner==='IBD'));
   S.C.IBD={alive:true,eq:M.eq*0.35+60,arm:M.arm*0.25,air:Math.round(M.air*0.2),nav:0,mp:M.mp*0.25,pp:30,mob:1,q:[],cap:NI['일뽕뜰']};
   M.eq*=0.8; M.arm*=0.85; M.air=Math.round(M.air*0.85); M.mp*=0.8; M.mob=1; M.pp+=40;
@@ -1078,8 +1088,10 @@ const DECISIONS=[
   opts:[{l:'포위 반격',d:'60일간 공격력 +30%',fn:()=>addMod('SVU','atk',1.3,60,'대반격')},{l:'전력 보존',d:'보병 사단 +12',fn:()=>addTroops('SVU','신민초국',12)}]},
  {id:'c82_summit',tag:'C82',date:'2035-01-14',cond:()=>atWar('C82','MSS'),title:'익명 회담',text:'수호동맹 대표들이 전쟁 목표를 논의합니다.',
   opts:[{l:'무조건 항복 원칙',d:'1년간 공격력 +10%',fn:()=>addMod('C82','atk',1.1,365,'무조건 항복 원칙')},{l:'해양 우선 전략',d:'해군력 +10',fn:()=>{S.C.C82.nav+=10;}}]},
+ {id:'mdh_warning',tag:'MDH',date:'2035-02-10',cond:()=>S.C.MSS.alive&&!atWar('MSS','MDH'),title:'국경 첩보',text:'남부 국경 너머에 무적신성신라제국 대군이 집결하고 있다는 첩보가 들어왔습니다. 미친동네도 북쪽 국경에 병력을 모으고 있습니다. 3월 초 기습 가능성이 높습니다.',
+  opts:[{l:'국경 요새화',d:'90일간 방어력 +20%',fn:()=>addMod('MDH','def',1.2,90,'국경 요새화')},{l:'예비군 소집',d:'자유뜰에 보병 12개 사단, 장비 +100',fn:()=>{addTroops('MDH','자유뜰',12);S.C.MDH.eq+=100;}},{l:'도발로 보고 무시',d:'정치력 +40',fn:()=>{S.C.MDH.pp+=40;}}]},
  {id:'mss_jyu',tag:'MSS',date:'2035-02-25',cond:()=>S.C.MDH.alive&&!atWar('MSS','MDH'),title:'자유뜰 공방전',text:'서부 국경에 제국 전군이 집결했습니다. 내전의 상처가 아물기 전에 모두함께를 쳐서 자유뜰을 함락하자는 주장이 힘을 얻고 있습니다.',
-  opts:[{l:'3월 1일 개전',d:'모두함께 선전포고 — 120일간 전격 진격(공격력 +30%), 90일간 기습 효과 +15%',fn:()=>{declareWar('MSS','MDH',true);addMod('MSS','atk',1.15,90,'기습 효과');}},{l:'개전 연기',d:'정치력 +50, 모두력 5년 6월에 재검토',fn:()=>{S.C.MSS.pp+=50;S.flags.jyuDelay=1;}}]},
+  opts:[{l:'3월 1일 개전',d:'모두함께 선전포고 — 120일간 전격 진격(공격력 +20%), 90일간 기습 효과 +15%',fn:()=>{declareWar('MSS','MDH',true);addMod('MSS','atk',1.15,90,'기습 효과');}},{l:'개전 연기',d:'정치력 +50, 모두력 5년 6월에 재검토',fn:()=>{S.C.MSS.pp+=50;S.flags.jyuDelay=1;}}]},
  {id:'mss_jyu2',tag:'MSS',date:'2035-06-01',cond:()=>S.flags.jyuDelay&&S.C.MDH.alive&&!atWar('MSS','MDH'),title:'자유뜰 공방전 재검토',text:'모두함께가 국경을 요새화하고 있습니다. 지금이 아니면 기회는 없습니다.',
   opts:[{l:'개전',d:'모두함께 선전포고',fn:()=>declareWar('MSS','MDH',true)},{l:'영구 연기',d:'정치력 +50',fn:()=>{S.C.MSS.pp+=50;}}]},
  {id:'mcd_total',tag:'MCD',date:'2035-02-18',cond:()=>enemiesOf('MCD').length>0,title:'총력전 선언',text:'골목 연설에서 총력전을 선포하려 합니다.',
